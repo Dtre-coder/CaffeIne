@@ -35,14 +35,10 @@ export function ProductModal({ item, shop, onClose, onCartOpen }: ProductModalPr
     ? item.price + volumePrices[volume] + syrupPrices[syrup] + milkPrices[milk]
     : item.price
 
-  const buildCartId = () =>
-    isCoffee
-      ? `${item.id}-${volume}-${syrup}-${milk}`
-      : `${item.id}-plain`
-
   const handleAddToCart = () => {
+    const cartId = isCoffee ? `${item.id}-${volume}-${syrup}-${milk}` : `${item.id}-plain`
     addItem({
-      id: buildCartId(),
+      id: cartId,
       shopId: shop.id,
       shopName: shop.name,
       shopColor: shop.color,
@@ -60,151 +56,128 @@ export function ProductModal({ item, shop, onClose, onCartOpen }: ProductModalPr
       setAdded(false)
       onClose()
       onCartOpen?.()
-    }, 1200)
+    }, 1000)
   }
+
+  const OptionGroup = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <div>
+      <p className="text-xs font-700 text-gray-400 uppercase tracking-widest mb-2">{label}</p>
+      <div className="flex gap-2">{children}</div>
+    </div>
+  )
+
+  const Chip = ({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) => (
+    <button
+      onClick={onClick}
+      className="flex-1 py-2.5 rounded-2xl text-sm font-700 transition-all border-2"
+      style={
+        active
+          ? { background: shop.color, color: 'white', borderColor: shop.color }
+          : { background: 'transparent', color: '#555', borderColor: '#e8e8e8' }
+      }
+    >
+      {children}
+    </button>
+  )
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+      style={{ background: 'rgba(10,10,20,0.55)', backdropFilter: 'blur(6px)' }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative overflow-hidden">
-        {/* Header */}
-        <div
-          className="p-6 text-white relative"
-          style={{ backgroundColor: shop.color }}
-        >
+      <div
+        className="bg-white w-full sm:max-w-md rounded-t-[28px] sm:rounded-[28px] overflow-hidden"
+        style={{ boxShadow: '0 24px 80px rgba(0,0,0,0.25)' }}
+      >
+        {/* Drag handle (mobile) */}
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-10 h-1 rounded-full bg-gray-200" />
+        </div>
+
+        {/* Illustration strip */}
+        <div className="relative flex items-center justify-center py-6" style={{ background: shop.bgColor }}>
+          <FoodIllustration itemId={item.id} color={shop.color} size={110} />
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-white opacity-70 hover:opacity-100 text-2xl leading-none"
+            className="absolute top-4 right-4 w-9 h-9 rounded-full glass flex items-center justify-center text-gray-500 hover:text-gray-800 transition-colors text-lg"
           >
             ×
           </button>
-          {/* Illustration */}
-          <div className="flex justify-center mb-3">
-            <FoodIllustration itemId={item.id} color="rgba(255,255,255,0.25)" size={90} />
-          </div>
-          <h2 className="text-2xl font-bold">{item.nameRu}</h2>
-          <p className="text-sm opacity-80 mt-1">{shop.name}</p>
-          <p className="text-sm opacity-70 mt-1">{item.description}</p>
+          <button
+            onClick={() => toggleFavorite({ shopId: shop.id, shopName: shop.name, itemId: item.id, itemName: item.name, itemNameRu: item.nameRu, price: item.price, emoji: item.emoji })}
+            className="absolute top-4 left-4 w-9 h-9 rounded-full glass flex items-center justify-center transition-all"
+            style={fav ? { color: '#e05' } : { color: '#bbb' }}
+          >
+            <HeartIcon filled={fav} size={16} />
+          </button>
         </div>
 
-        <div className="p-6 space-y-4">
+        {/* Content */}
+        <div className="px-5 pt-4 pb-6 space-y-4">
+          <div>
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="text-2xl font-extrabold text-[#1a1a2e] leading-tight" style={{ letterSpacing: '-0.03em' }}>
+                {item.nameRu}
+              </h2>
+              <span className="text-2xl font-extrabold text-[#1a1a2e] shrink-0">{totalPrice} ₽</span>
+            </div>
+            <p className="text-sm text-gray-400 mt-1 leading-relaxed">{item.description}</p>
+            <p className="text-xs font-700 mt-1" style={{ color: shop.color }}>{shop.name}</p>
+          </div>
+
           {isCoffee && (
             <>
-              {/* Volume */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Объём</label>
-                <div className="flex gap-2">
-                  {(['0.2', '0.3', '0.4'] as Volume[]).map((v) => (
-                    <button
-                      key={v}
-                      onClick={() => setVolume(v)}
-                      className={`flex-1 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${
-                        volume === v ? 'text-white border-transparent' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                      }`}
-                      style={volume === v ? { backgroundColor: shop.color, borderColor: shop.color } : {}}
-                    >
-                      {v} л
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <OptionGroup label="Объём">
+                {(['0.2', '0.3', '0.4'] as Volume[]).map((v) => (
+                  <Chip key={v} active={volume === v} onClick={() => setVolume(v)}>{v} л</Chip>
+                ))}
+              </OptionGroup>
 
-              {/* Syrup */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Сироп</label>
-                <div className="flex gap-2">
-                  {([{ value: 'none', label: 'Без сиропа' }, { value: 'vanilla', label: 'Ваниль' }, { value: 'caramel', label: 'Карамель' }] as { value: Syrup; label: string }[]).map((s) => (
-                    <button
-                      key={s.value}
-                      onClick={() => setSyrup(s.value)}
-                      className={`flex-1 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${
-                        syrup === s.value ? 'text-white border-transparent' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                      }`}
-                      style={syrup === s.value ? { backgroundColor: shop.color, borderColor: shop.color } : {}}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <OptionGroup label="Сироп">
+                {([['none', 'Без сиропа'], ['vanilla', 'Ваниль'], ['caramel', 'Карамель']] as [Syrup, string][]).map(([v, l]) => (
+                  <Chip key={v} active={syrup === v} onClick={() => setSyrup(v)}>{l}</Chip>
+                ))}
+              </OptionGroup>
 
-              {/* Milk */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Молоко</label>
-                <div className="flex gap-2">
-                  {([{ value: 'regular', label: 'Обычное' }, { value: 'oat', label: 'Овсяное +60₽' }] as { value: Milk; label: string }[]).map((m) => (
-                    <button
-                      key={m.value}
-                      onClick={() => setMilk(m.value)}
-                      className={`flex-1 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${
-                        milk === m.value ? 'text-white border-transparent' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                      }`}
-                      style={milk === m.value ? { backgroundColor: shop.color, borderColor: shop.color } : {}}
-                    >
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <OptionGroup label="Молоко">
+                {([['regular', 'Обычное'], ['oat', 'Овсяное +60₽']] as [Milk, string][]).map(([v, l]) => (
+                  <Chip key={v} active={milk === v} onClick={() => setMilk(v)}>{l}</Chip>
+                ))}
+              </OptionGroup>
             </>
           )}
 
-          {/* Comment */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Комментарий к заказу</label>
+            <p className="text-xs font-700 text-gray-400 uppercase tracking-widest mb-2">Комментарий</p>
             <input
               type="text"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="Например: не острое, без лука…"
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-gray-400 transition-colors"
+              placeholder="Без лука, не острое…"
+              className="w-full px-4 py-3 rounded-2xl text-sm outline-none transition-all"
+              style={{ background: '#f5f4f2', border: '2px solid transparent' }}
+              onFocus={e => (e.target.style.borderColor = shop.color)}
+              onBlur={e => (e.target.style.borderColor = 'transparent')}
             />
           </div>
 
-          {/* Price + actions */}
-          <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-            <div className="text-2xl font-bold text-gray-900">{totalPrice} ₽</div>
-            <div className="flex gap-2">
-              <button
-                onClick={() =>
-                  toggleFavorite({
-                    shopId: shop.id,
-                    shopName: shop.name,
-                    itemId: item.id,
-                    itemName: item.name,
-                    itemNameRu: item.nameRu,
-                    price: item.price,
-                    emoji: item.emoji,
-                  })
-                }
-                className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-colors ${
-                  fav ? 'bg-red-50 border-red-300 text-red-500' : 'bg-white border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-400'
-                }`}
-                title={fav ? 'Удалить из избранного' : 'В избранное'}
-              >
-                <HeartIcon filled={fav} />
-              </button>
-              <button
-                onClick={handleAddToCart}
-                className="px-6 py-2 rounded-xl text-white font-semibold transition-all hover:scale-105 active:scale-95"
-                style={{ backgroundColor: shop.color }}
-              >
-                {added ? '✓ Добавлено!' : 'В корзину'}
-              </button>
-            </div>
-          </div>
+          <button
+            onClick={handleAddToCart}
+            className="btn-pill w-full py-4 text-base text-white font-800 transition-all"
+            style={{ background: added ? '#22c55e' : shop.color }}
+          >
+            {added ? '✓ Добавлено в корзину!' : `В корзину · ${totalPrice} ₽`}
+          </button>
         </div>
       </div>
     </div>
   )
 }
 
-function HeartIcon({ filled }: { filled: boolean }) {
+function HeartIcon({ filled, size = 18 }: { filled: boolean; size?: number }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
     </svg>
   )
